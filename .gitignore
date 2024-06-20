@@ -1,6 +1,8 @@
 *.env
 *.jsonl
 *.tar.gz
+*.json
+
 
 */code
 playground.ipynb
