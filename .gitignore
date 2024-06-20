@@ -1,4 +1,6 @@
 *.env
 *.jsonl
+*.tar.gz
 
 HJM/code
+elasticsearch-8.8.0
