@@ -2,5 +2,5 @@
 *.jsonl
 *.tar.gz
 
-HJM/code
-elasticsearch-8.8.0
+*/code
+playground.ipynb
