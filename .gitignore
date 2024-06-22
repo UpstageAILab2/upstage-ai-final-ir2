@@ -1,12 +1,13 @@
 *.env
 *.jsonl
 *.tar.gz
-*.json
 
 
-
+# JaeMin
 */code
 */submit
+*.faiss
+*.pkl
 playground.ipynb
 
 #SeungHyun
