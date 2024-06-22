@@ -6,12 +6,10 @@ import json
 import time
 import pandas as pd
 
-
 from langchain import hub
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import JSONLoader
 from langchain.schema import Document
-from langchain.tools import tool
 from langchain_community.vectorstores import FAISS
 from langchain_upstage import UpstageEmbeddings
 from langchain_upstage import ChatUpstage
