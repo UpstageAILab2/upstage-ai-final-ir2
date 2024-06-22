@@ -5,10 +5,10 @@
 
 # JaeMin
 */code
-*/submit
 *.faiss
 *.pkl
-playground.ipynb
+*.csv
+test.ipynb
 
 #SeungHyun
 elasticsearch-8.8.0
