@@ -1,8 +1,5 @@
 import os
-import json
-from HM.elasticsearch_class import Elasticsearch, helpers
-from subprocess import Popen, PIPE, STDOUT
-import time
+from elasticsearch import Elasticsearch
 
 class elasticsearch:
     def __init__(self, username='elastic', password='8YoPc7sP_W-uBUDkXV73', 
@@ -29,15 +26,3 @@ class elasticsearch:
         else:
             print("ElasticSearch 클라이언트가 생성되지 않았습니다.")
             return None
-    
-    
-    def create_index(self, index_name):
-        if not self.es.indices.exists(index=index_name):
-            self.es.indices.create(index=index_name)
-            print(f"인덱스 '{index_name}'가 생성되었습니다.")
-        else:
-            print(f"인덱스 '{index_name}'가 이미 존재합니다.")
-
-    def index_document(self, index_name, document):
-        result = self.es.index(index=index_name, body=document)
-        return result
