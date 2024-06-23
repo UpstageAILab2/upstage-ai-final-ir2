@@ -2,7 +2,7 @@ import os
 from elasticsearch import Elasticsearch
 
 class elasticsearch:
-    def __init__(self, username='elastic', password='8YoPc7sP_W-uBUDkXV73', 
+    def __init__(self, username='elastic', password='i0U-yIVKQ-vAtoP9WbJ_', 
                  ca_certs="/data/ephemeral/home/upstage-ai-final-ir2/HM/elasticsearch-8.8.0/config/certs/http_ca.crt"):
         self.es_username = username
         self.es_password = password
