@@ -58,9 +58,10 @@ def main():
 
     # 색인이 잘 되었는지 확인 (색인된 총 문서수가 출력되어야 함)
     print(f"Indexed documents: {ret}")
-
+    
     # RAG 인스턴스 생성
-    rag_instance = RAG(api_key="sk-proj-FCdLR9oK", retrieval_instance=retrieval_instance)
+    api_key = os.getenv('OPENAI_API_KEY')
+    rag_instance = RAG(api_key=api_key, retrieval_instance=retrieval_instance)
 
     # 평가 실행
     eval_rag(rag_instance, "/data/ephemeral/home/upstage-ai-final-ir2/HM/data/eval.jsonl", "sample_submission_3.csv")
