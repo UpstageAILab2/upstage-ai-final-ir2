@@ -1,13 +1,14 @@
 *.env
 *.jsonl
 *.tar.gz
-*.json
 
 
-
+# JaeMin
 */code
-*/submit
-playground.ipynb
+*.faiss
+*.pkl
+*.csv
+test.ipynb
 
 #SeungHyun
 elasticsearch-8.8.0
