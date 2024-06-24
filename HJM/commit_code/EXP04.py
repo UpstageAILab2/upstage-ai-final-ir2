@@ -20,7 +20,7 @@ from langchain_core.output_parsers import StrOutputParser
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 UPSTAGE_API_KEY = os.environ.get('UPSTAGE_API_KEY')
 LANGCHAIN_API_KEY = os.environ.get('LANGCHAIN_API_KEY')
-os.environ['LANGCHAIN_PROJECT'] = 'EXP03' # 프로젝트명 수정
+os.environ['LANGCHAIN_PROJECT'] = 'EXP04' # 프로젝트명 수정
 LANGCHAIN_PROJECT = os.environ.get('LANGCHAIN_PROJECT')
 
 print(f'LangSmith Project: {LANGCHAIN_PROJECT}')
