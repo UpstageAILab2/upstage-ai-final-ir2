@@ -66,9 +66,12 @@ for tmp in temp:
 
 # Split
 splitter = CharacterTextSplitter(
-    chunk_size=300,
+    separator='',
+    chunk_size=100,
     chunk_overlap=20,
+    length_function=len,
 )
+split_documents = splitter.split_documents(documents)
 
 
 # Embedding
@@ -84,7 +87,7 @@ folder_path = f'./faiss_{LANGCHAIN_PROJECT}'
 if not os.path.exists(folder_path):
     print('Vector Store 생성 중')
     vectorstore = FAISS.from_documents(
-        documents=documents,
+        documents=split_documents,
         embedding=embeddings,
     )
     vectorstore.save_local(folder_path=folder_path)
@@ -178,7 +181,7 @@ def eval_rag(eval_filename, output_filename):
             idx += 1
 
 # 평가 데이터에 대해서 결과 생성 - 파일 포맷은 jsonl이지만 파일명은 csv 사용
-eval_rag('../data/eval.jsonl', '../submit/EXP03.csv')
+eval_rag('../data/eval.jsonl', '../submit/EXP04.csv')
 
 # LangSmith 저장 시간 확보
 time.sleep(60)
