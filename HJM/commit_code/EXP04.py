@@ -7,7 +7,7 @@ import time
 import pandas as pd
 
 from langchain import hub
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import JSONLoader
 from langchain.schema import Document
 from langchain_community.vectorstores import FAISS
