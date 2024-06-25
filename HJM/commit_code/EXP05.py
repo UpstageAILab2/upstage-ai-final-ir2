@@ -7,7 +7,7 @@ import time
 import pandas as pd
 
 from langchain import hub
-from langchain_text_splitters import CharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import JSONLoader
 from langchain.schema import Document
 from langchain_community.vectorstores import FAISS
@@ -20,7 +20,7 @@ from langchain_core.output_parsers import StrOutputParser
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 UPSTAGE_API_KEY = os.environ.get('UPSTAGE_API_KEY')
 LANGCHAIN_API_KEY = os.environ.get('LANGCHAIN_API_KEY')
-os.environ['LANGCHAIN_PROJECT'] = 'EXP04' # 프로젝트명 수정
+os.environ['LANGCHAIN_PROJECT'] = 'EXP05' # 프로젝트명 수정
 LANGCHAIN_PROJECT = os.environ.get('LANGCHAIN_PROJECT')
 
 print(f'LangSmith Project: {LANGCHAIN_PROJECT}')
@@ -65,13 +65,14 @@ for tmp in temp:
 
 
 # Split
-splitter = CharacterTextSplitter(
-    separator='',
+splitter = RecursiveCharacterTextSplitter(
+    separators=['\n\n', '. ', ' ', ''],
     chunk_size=100,
-    chunk_overlap=20,
-    length_function=len,
+    chunk_overlap=0,
 )
 split_documents = splitter.split_documents(documents)
+
+print(f'Text Splitter 적용 전 문서 개수: {len(documents)}\nText Splitter 적용 후 문서 개수: {len(split_documents)}')
 
 
 # Embedding
@@ -181,7 +182,7 @@ def eval_rag(eval_filename, output_filename):
             idx += 1
 
 # 평가 데이터에 대해서 결과 생성 - 파일 포맷은 jsonl이지만 파일명은 csv 사용
-eval_rag('../data/eval.jsonl', '../submit/EXP04.csv')
+eval_rag('../data/eval.jsonl', '../submit/EXP05.csv')
 
 # LangSmith 저장 시간 확보
 time.sleep(60)
