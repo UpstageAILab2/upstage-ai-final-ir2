@@ -54,9 +54,9 @@
 
 ## EXP05
 
-- Text Splitter 적용
+- Text Splitter 변경
 
-    - `RecursiveCharacterTextSplitter`
+    - `CharacterTextSplitter` → `RecursiveCharacterTextSplitter`
 
 - LB Score
 
