@@ -111,7 +111,7 @@ else:
 # vectorstore retriever
 retriever = vectorstore.as_retriever(
     search_type='similarity', 
-    search_kwargs={'k': 5}
+    search_kwargs={'k': 10}
 )
 
 
@@ -137,6 +137,7 @@ chat = ChatUpstage(
     max_tokens=250,
 )
 
+co = cohere.Client(api_key=COHERE_API_KEY)
 
 # LLM과 검색엔진을 활용한 RAG 구현
 def self_prompt(text):
@@ -244,25 +245,6 @@ def qa_response(context, question, max_retries=3):
 def answer_question(messages):
     history = '\n'.join([f"{message['role']}: {message['content']}" for message in messages]) + '\n'
 
-    # Reranker - Cohere
-    co = cohere.Client(api_key=COHERE_API_KEY)
-
-    org_retriever = retriever.invoke(history)
-    rerank_docs = [ret.page_content for ret in org_retriever]
-
-    top_k = 3
-    response = co.rerank(
-        model="rerank-multilingual-v3.0",
-        query=history,
-        documents=rerank_docs,
-        top_n=top_k,
-    )
-
-    idxs = [response.results[i].index for i in range(top_k)]
-    rerank_retriever = [org_retriever[idx] for idx in idxs]
-
-    context = '\n\n'.join(doc.page_content for doc in rerank_retriever)
-
     is_science = science_response(text=history).lower()
 
     response = {
@@ -275,6 +257,23 @@ def answer_question(messages):
 
     # 과학 상식과 관련한 질의일 때
     if 'yes' in is_science:
+    
+        # Reranker - Cohere
+        org_retriever = retriever.invoke(history)
+        rerank_docs = [ret.page_content for ret in org_retriever]
+
+        top_k = 5
+        response = co.rerank(
+            model="rerank-multilingual-v3.0",
+            query=history,
+            documents=rerank_docs,
+            top_n=top_k,
+        )
+
+        idxs = [response.results[i].index for i in range(top_k)]
+        rerank_retriever = [org_retriever[idx] for idx in idxs]
+
+        context = '\n\n'.join(doc.page_content for doc in rerank_retriever)
 
         answer = qa_response(context, history)
 
