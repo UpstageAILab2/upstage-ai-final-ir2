@@ -64,7 +64,7 @@ embeddings = UpstageEmbeddings(
 
 # 벡터 저장소 생성
 # pip install faiss-cpu
-folder_path = f'./vectorstore/EXP08'
+folder_path = f'./vectorstore/EXP04' # chunk size = 100, overlap = 20
 if not os.path.exists(folder_path):
     print(f'"{folder_path}" create ...')
     
