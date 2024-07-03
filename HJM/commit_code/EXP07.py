@@ -64,13 +64,13 @@ embeddings = UpstageEmbeddings(
 
 # 벡터 저장소 생성
 # pip install faiss-cpu
-folder_path = f'./vectorstore/EXP07_2'
+folder_path = f'./vectorstore/EXP07_3'
 if not os.path.exists(folder_path):
     print(f'"{folder_path}" create ...')
     
     splitter = CharacterTextSplitter(
         separator='. ',
-        chunk_size=200,
+        chunk_size=300,
         chunk_overlap=30,
         length_function=len,
     )
@@ -147,6 +147,7 @@ def is_prompt(question):
 
 # RAG 구현에 필요한 Question Answering을 위한 프롬프트
 def rag_prompt(context, question):
+    context = '\n'.join(context)
     prompt = (
         "You are an assistant for answering questions related to social and scientific knowledge." 
         " Use the following pieces of retrieved context to answer the question."
