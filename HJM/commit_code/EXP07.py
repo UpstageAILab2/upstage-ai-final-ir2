@@ -8,14 +8,11 @@ import cohere
 
 from openai import OpenAI
 
-from langchain import hub
 from langchain_text_splitters import CharacterTextSplitter
 from langchain_community.document_loaders import JSONLoader
 from langchain.schema import Document
 from langchain_community.vectorstores import FAISS
 from langchain_upstage import UpstageEmbeddings, ChatUpstage, UpstageGroundednessCheck
-from langchain_core.runnables import RunnablePassthrough
-from langchain_core.output_parsers import StrOutputParser
 
 
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
@@ -58,17 +55,6 @@ for tmp in temp:
     seq_num += 1
 
 
-# # content 길이 확인
-# temp = []
-# for idx in range(0, len(documents)):
-#     value = len(documents[idx].page_content)
-#     temp.append(value)
-# data = temp
-# temp = pd.DataFrame(data)
-# temp.describe()
-# # 문장 최소 길이 = 44, 평균 길이 = 315, 최대 길이 = 1230
-
-
 # Embedding
 embeddings = UpstageEmbeddings(
     api_key=UPSTAGE_API_KEY,
@@ -78,14 +64,14 @@ embeddings = UpstageEmbeddings(
 
 # 벡터 저장소 생성
 # pip install faiss-cpu
-folder_path = f'./vectorstore/EXP06' # EXP06에서의 조건과 동일함
+folder_path = f'./vectorstore/EXP07_2'
 if not os.path.exists(folder_path):
-    print('Create Vector Store ...')
+    print(f'"{folder_path}" create ...')
     
     splitter = CharacterTextSplitter(
         separator='. ',
-        chunk_size=130,
-        chunk_overlap=20,
+        chunk_size=200,
+        chunk_overlap=30,
         length_function=len,
     )
     split_documents = splitter.split_documents(documents)
@@ -108,28 +94,14 @@ else:
     print('Load Vector Store')
 
 
-# vectorstore retriever
+# vectorstore as retriever
 retriever = vectorstore.as_retriever(
     search_type='similarity', 
     search_kwargs={'k': 10}
 )
 
 
-# RAG 구현에 필요한 Question Answering을 위한 LLM  프롬프트
-# prompt = hub.pull("rlm/rag-prompt")
-def rag_prompt(context, question):
-    prompt_ = (
-        "You are an assistant for question-answering tasks." 
-        " Use the following pieces of retrieved context to answer the question."
-        " If you don't know the answer, just say that you don't know."
-        " Use three sentences maximum and keep the answer concise.\n"
-        "Question: {question}\n"
-        "Context: {context}\n" 
-        "Answer:"
-    )
-    return prompt_.format(context=context, question=question)
-
-
+# langchain chat
 chat = ChatUpstage(
     api_key=UPSTAGE_API_KEY,
     model='solar-1-mini-chat', 
@@ -137,99 +109,79 @@ chat = ChatUpstage(
     max_tokens=250,
 )
 
+
+# Cohere client
 co = cohere.Client(api_key=COHERE_API_KEY)
 
-# LLM과 검색엔진을 활용한 RAG 구현
-def self_prompt(text):
-    prompt_ = (
-        "주어진 Context가 과학 상식과 관련된 질문인지 판별할 수 있도록 'yes' 또는 'no'로 답변해주세요."
+# OpenAI client
+openai_client = OpenAI(api_key=OPENAI_API_KEY)
+
+# Upstage client
+upstage_client = OpenAI(
+    api_key=UPSTAGE_API_KEY,
+    base_url="https://api.upstage.ai/v1/solar"
+)
+
+
+# 사회/과학 지식 질문 여부를 파악하는 프롬프트
+def is_prompt(question):
+    prompt = (
+        "당신은 사회/과학 지식 전문가 입니다."
+        " 주어진 Context가 사회/과학 상식과 관련된 질문인지 판별할 수 있도록 'yes' 또는 'no'로 답변해주세요."
         " 제공되는 예시는 일상 대화 중 나오는 질문입니다. 이러한 일상 대화가 아닌 질의는 'yes'로 답변해주세요.\n\n"
         "예시:\n"
-        "요새 너무 힘들다. -> 'no'\n"
-        "니가 대답을 잘해줘서 너무 신나! -> 'no'\n"
-        "이제 그만 얘기해! -> 'no'\n"
-        "오늘 너무 즐거웠다! -> 'no'\n"
-        "우울한데 신나는 얘기 좀 해줘! -> 'no'\n"
-        "너 모르는 것도 있니? -> 'no'\n"
-        "너 잘하는게 뭐야? -> 'no'\n"
-        "너 정말 똑똑하다! -> 'no'\n"
-        "안녕 반가워 -> 'no'\n\n"
+        "요새 너무 힘들어. -> 'no'\n"
+        "대답을 잘해줘서 너무 좋아! -> 'no'\n"
+        "그만 얘기하자. -> 'no'\n"
+        "신나는 얘기해줘! -> 'no'\n"
+        "모르는게 뭐야? -> 'no'\n"
+        "잘하는게 뭐야? -> 'no'\n"
+        "똑똑하구나. -> 'no'\n"
+        "안녕. -> 'no'\n\n"
         "프롬프트의 내용이 답변에 들어가지 않도록 주의해주세요.\n\n"
-        "Context: {text}\n"
+        "Context: {question}\n"
         "Answer:"
     )
-    return prompt_.format(text=text)
+    return prompt.format(question=question)
 
 
-def science_response(text, max_retries=3):
-    client = OpenAI(api_key=OPENAI_API_KEY)
-
-    is_prompt = self_prompt(text=text)
-    retries = 0
-    while retries < max_retries:
-        try:
-            response_ = client.chat.completions.create(
-                model='gpt-3.5-turbo-0125',
-                messages=[
-                    {
-                        "role": "system", 
-                        "content": "You are a helpful assistant."
-                    },
-                    {
-                        "role": "user", 
-                        "content": is_prompt
-                    }
-                ],
-                temperature=0,
-                max_tokens=3,
-                timeout=60,
-            )
-            content = response_.choices[0].message.content
-
-            if len(content) > 10:
-                print(f"Response too long, retrying... ({retries + 1}/{max_retries})")
-                retries += 1
-            else:
-                break
-        except Exception as e:
-            print(f"Error: {e}")
-            retries += 1
-        time.sleep(1)
-
-    print('is science:', content)
-
-    return content
-
-
-def qa_response(context, question, max_retries=3):
-    client = OpenAI(
-        api_key=UPSTAGE_API_KEY,
-        base_url="https://api.upstage.ai/v1/solar"
+# RAG 구현에 필요한 Question Answering을 위한 프롬프트
+def rag_prompt(context, question):
+    prompt = (
+        "You are an assistant for answering questions related to social and scientific knowledge." 
+        " Use the following pieces of retrieved context to answer the question."
+        " If you don't know the answer, just say that you don't know."
+        " Use three sentences maximum and keep the answer concise.\n"
+        "Question: {question}\n"
+        "Context: {context}\n" 
+        "Answer:"
     )
+    return prompt.format(context=context, question=question)
 
-    prompt = rag_prompt(context=context, question=question)
+
+# 답변을 생성하는 LLM
+def create_response(client, self_prompt, model, max_tokens, retry_len, max_retries=3):
+    client = client
+
+    prompt = self_prompt
     retries = 0
     while retries < max_retries:
         try:
-            response_ = client.chat.completions.create(
-                model='solar-1-mini-chat',
+            response = client.chat.completions.create(
+                model=model,
                 messages=[
-                    {
-                        "role": "system", 
-                        "content": "You are a helpful assistant."
-                    },
                     {
                         "role": "user", 
                         "content": prompt
                     }
                 ],
                 temperature=0,
-                max_tokens=250,
+                max_tokens=max_tokens,
                 timeout=60,
             )
-            content = response_.choices[0].message.content
+            content = response.choices[0].message.content
 
-            if len(content) > 500:
+            if len(content) > retry_len:
                 print(f"Response too long, retrying... ({retries + 1}/{max_retries})")
                 retries += 1
             else:
@@ -243,57 +195,65 @@ def qa_response(context, question, max_retries=3):
 
 
 def answer_question(messages):
-    history = '\n'.join([f"{message['role']}: {message['content']}" for message in messages]) + '\n'
-
-    is_science = science_response(text=history).lower()
-
-    response = {
+    save_datas = {
         "topk": "", 
         "is_science": "", 
         "answer": "", 
         "references": ""
     }
 
+    history = '\n'.join([f"{message['role']}: {message['content']}" for message in messages]) + '\n'
 
-    # 과학 상식과 관련한 질의일 때
+    is_science = create_response(
+        client=openai_client, 
+        self_prompt=is_prompt(question=history), 
+        model='gpt-3.5-turbo-0125', 
+        max_tokens=3, 
+        retry_len=10
+    ).lower()
+
     if 'yes' in is_science:
     
         # Reranker - Cohere
-        org_retriever = retriever.invoke(history)
-        rerank_docs = [ret.page_content for ret in org_retriever]
+        org_docs = retriever.invoke(history)
+        page_contents = [doc.page_content for doc in org_docs]
 
         top_k = 5
-        response = co.rerank(
+        co_rerank = co.rerank(
             model="rerank-multilingual-v3.0",
             query=history,
-            documents=rerank_docs,
+            documents=page_contents,
             top_n=top_k,
         )
 
-        idxs = [response.results[i].index for i in range(top_k)]
-        rerank_retriever = [org_retriever[idx] for idx in idxs]
+        idxs = [co_rerank.results[i].index for i in range(top_k)]
+        rerank_docs = [org_docs[idx] for idx in idxs]
 
-        context = '\n\n'.join(doc.page_content for doc in rerank_retriever)
+        context = '\n\n'.join(doc.page_content for doc in rerank_docs)
 
-        answer = qa_response(context, history)
+        answer = create_response(
+            client=upstage_client, 
+            self_prompt=rag_prompt(context=context, question=history), 
+            model='solar-1-mini-chat', 
+            max_tokens=250, 
+            retry_len=500
+        ).lower()
 
-        ref_content = [reference.page_content for reference in rerank_retriever]
-        topk = [reference.metadata['docid'] for reference in rerank_retriever]
+        ref_content = [doc.page_content for doc in rerank_docs]
+        topk = [doc.metadata['docid'] for doc in rerank_docs]
 
-
-    # 과학 상식과 관련한 질의가 아닐 때
     elif 'no' in is_science:
         answer = chat.invoke(history).content
 
         ref_content = []
         topk = []
 
-    response["topk"] = topk
-    response["is_science"] = is_science
-    response["answer"] = answer
-    response["references"] = ref_content
+    save_datas["topk"] = topk
+    save_datas["is_science"] = is_science
+    save_datas["answer"] = answer
+    save_datas["references"] = ref_content
 
-    return response
+    return save_datas
 
 
 # 평가를 위한 파일을 읽어서 각 평가 데이터에 대해서 결과 추출후 파일에 저장
@@ -303,11 +263,12 @@ def eval_rag(eval_filename, output_filename):
         for eval_line in eval_lines:
             j = json.loads(eval_line)
             print(f'Test {idx}\nQuestion: {j["msg"]}')
-            response = answer_question(j["msg"])
-            print(f'Answer: {response["answer"]}\n')
+            save_datas = answer_question(j["msg"])
+            print(f'Is science: {save_datas["is_science"]}\n')
+            print(f'Answer: {save_datas["answer"]}\n')
 
             # 대회 score 계산은 topk 정보를 사용, answer 정보는 LLM을 통한 자동평가시 활용
-            output = {"eval_id": j["eval_id"], "topk": response["topk"], "is_science": response["is_science"], "answer": response["answer"], "references": response["references"]}
+            output = {"eval_id": j["eval_id"], "topk": save_datas["topk"], "is_science": save_datas["is_science"], "answer": save_datas["answer"], "references": save_datas["references"]}
             output_lines.write(f'{json.dumps(output, ensure_ascii=False)}\n')
             idx += 1
 
