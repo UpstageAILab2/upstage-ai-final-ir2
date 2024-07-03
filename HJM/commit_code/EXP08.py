@@ -64,14 +64,14 @@ embeddings = UpstageEmbeddings(
 
 # 벡터 저장소 생성
 # pip install faiss-cpu
-folder_path = f'./vectorstore/EXP07_3'
+folder_path = f'./vectorstore/EXP08'
 if not os.path.exists(folder_path):
     print(f'"{folder_path}" create ...')
     
     splitter = CharacterTextSplitter(
         separator='. ',
-        chunk_size=300,
-        chunk_overlap=30,
+        chunk_size=130,
+        chunk_overlap=20,
         length_function=len,
     )
     split_documents = splitter.split_documents(documents)
